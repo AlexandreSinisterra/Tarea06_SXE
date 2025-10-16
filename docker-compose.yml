@@ -12,7 +12,7 @@ services:
       - db_data:/var/lib/mysql
 
   prestashop:
-    image: prestashop/prestashop:latest
+    image: prestashop/prestashop
     container_name: prestashop_app
     depends_on:
       - db
@@ -23,22 +23,20 @@ services:
       DB_NAME: $(DB_NAME)
       DB_USER: $(DB_USER)
       DB_PASSWD: $(DB_PASSWD)
-      PS_INSTALL_AUTO: 1
-      PS_DEV_MODE: 1
-      PS_DOMAIN: localhost:8080
+      DB_HOST: db
     volumes:
       - prestashop_data:/var/www/html
     restart: always
 
   phpmyadmin:
-    image: phpmyadmin:latest
+    image: phpmyadmin
     container_name: prestashop_phpmyadmin
     depends_on:
       - db
     ports:
       - "8081:80"
     environment:
-      PMA_HOST: $(PMA_HOST)
+      PMA_HOST: db
       PMA_USER: $(PMA_USER)
       PMA_PASSWORD: $(PMA_PASSWORD)
     restart: always
