@@ -1,15 +1,12 @@
 services:
   db:
     image: mariadb:10.6
-    container_name: prestashop_db
-    restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: $(MYSQL_ROOT_PASSWORD)
-      MYSQL_DATABASE: $(MYSQL_DATABASE)
-      MYSQL_USER: $(MYSQL_USER)
-      MYSQL_PASSWORD: $(MYSQL_PASSWORD)
-    networks:
-      - prestashop_network
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    command: --default-authentication-plugin=mysql_native_password
     volumes:
       - db_data:/var/lib/mysql
     healthcheck:
@@ -21,30 +18,27 @@ services:
 
   prestashop:
     image: prestashop/prestashop:latest
-    container_name: prestashop_app
     depends_on:
       db:
         condition: service_healthy
     ports:
       - "8080:80"
     environment:
-      DB_SERVER: $(DB_SERVER)
-      DB_NAME: $(DB_NAME)
-      DB_USER: $(DB_USER)
-      DB_PASSWD: $(DB_PASSWD)
-      DB_HOST: db
+      DB_SERVER: db
+      DB_NAME: ${MYSQL_DATABASE}
+      DB_USER: ${MYSQL_USER}
+      DB_PASSWD: ${MYSQL_PASSWORD}
       PS_INSTALL_AUTO: 1
-      PS_DEV_MODE: 1
       PS_DOMAIN: localhost:8080
+      PS_LANGUAGE: es
+      PS_COUNTRY: ES
+      ADMIN_MAIL: ${ADMIN_MAIL}
+      ADMIN_PASSWD: ${ADMIN_PASSWD}
     volumes:
-      - prestashop_data:/var/www/html
-    networks:
-      - prestashop_network
-    restart: always
+      - ps_data:/var/www/html
 
   phpmyadmin:
-    image: phpmyadmin:latest
-    container_name: prestashop_phpmyadmin
+    image: phpmyadmin/phpmyadmin
     depends_on:
       db:
         condition: service_healthy
@@ -52,15 +46,10 @@ services:
       - "8081:80"
     environment:
       PMA_HOST: db
-      PMA_USER: $(PMA_USER)
-      PMA_PASSWORD: $(PMA_PASSWORD)
-    networks:
-      - prestashop_network
-    restart: always
+      PMA_USER: ${MYSQL_USER}
+      PMA_PASSWORD: ${MYSQL_PASSWORD}
+
 
 volumes:
   db_data:
-  prestashop_data:
-
-networks:
-  prestashop_network:
+  ps_data:
