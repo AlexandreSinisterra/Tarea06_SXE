@@ -8,14 +8,23 @@ services:
       MYSQL_DATABASE: $(MYSQL_DATABASE)
       MYSQL_USER: $(MYSQL_USER)
       MYSQL_PASSWORD: $(MYSQL_PASSWORD)
+    networks:
+      - prestashop_network
     volumes:
       - db_data:/var/lib/mysql
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
 
   prestashop:
     image: prestashop/prestashop:latest
     container_name: prestashop_app
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     ports:
       - "8080:80"
     environment:
@@ -29,21 +38,29 @@ services:
       PS_DOMAIN: localhost:8080
     volumes:
       - prestashop_data:/var/www/html
+    networks:
+      - prestashop_network
     restart: always
 
   phpmyadmin:
     image: phpmyadmin:latest
     container_name: prestashop_phpmyadmin
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     ports:
       - "8081:80"
     environment:
       PMA_HOST: db
       PMA_USER: $(PMA_USER)
       PMA_PASSWORD: $(PMA_PASSWORD)
+    networks:
+      - prestashop_network
     restart: always
 
 volumes:
   db_data:
   prestashop_data:
+
+networks:
+  prestashop_network:
