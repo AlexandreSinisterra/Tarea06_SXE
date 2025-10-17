@@ -1,42 +1,90 @@
-# Tarea06_SXE
+# Tarea06_SXE - Docker + PrestaShop + MariaDB + phpMyAdmin
 
-## Codigo
+Este proyecto utiliza Docker Compose para levantar un entorno completo con una base de datos MariaDB, PrestaShop como CMS de e-commerce, y phpMyAdmin como gestor visual de la base de datos.
 
-Este programa esta dividido en 3 partes, el bd, prestashop y phpmyadmin:
+## 🧱 Estructura del proyecto
 
-- bd
+El `docker-compose.yml` define tres servicios principales:
+
+---
+
+### 🔹 1. Base de datos (MariaDB)
 
 ![img_6.png](img_6.png)
 
-con la imagen se especifica cual quieres utilizar, puedes utilizar mySQL, pero por algunos errores que pueden ocurrir con la compatibilidad de algunos sistemas operativos, es mas recomendable utilizar mariadb.
+- Se utiliza la imagen `mariadb:10.6`, preferida frente a MySQL por compatibilidad con PrestaShop y ciertos sistemas operativos.
+- Las variables de entorno como `MYSQL_ROOT_PASSWORD`, `MYSQL_DATABASE`, `MYSQL_USER`, y `MYSQL_PASSWORD` están definidas en un archivo `.env`.
+- Se monta un volumen para persistir los datos: `db_data:/var/lib/mysql`.
+- El `healthcheck` se encarga de comprobar que la base de datos esté activa y lista antes de iniciar otros servicios.
 
-en enviroment especificas los datos, yo la mayoría de datos los tengo en un archivo .env, que funciona escribiendo las variables en el archivo y luego llamandolas ${nombre_de_variable}.
+---
 
-El healthcheck sirve para que nos sirve para garantizar que el db esté listo para que se ejecuten los demás servicios
-
-- prestashop
+### 🔹 2. PrestaShop
 
 ![img_7.png](img_7.png)
 
-depends_on sirve para que el servicio espere a otro, asi nos aseguramos que se ejecute despues. En este caso prestashop está esperando a que se verifique que db sea saludable.
+- Imagen utilizada: `prestashop/prestashop:8.1`.
+- Usa `depends_on` con condición de salud (`condition: service_healthy`) para esperar a que la base de datos esté lista.
+- Variables de entorno:
+    - `DB_SERVER`, `DB_NAME`, `DB_USER`, `DB_PASSWD`: conexión a la base de datos.
+    - `PS_INSTALL_AUTO`: instala PrestaShop automáticamente.
+    - `PS_DOMAIN`, `PS_LANGUAGE`, `PS_COUNTRY`, `ADMIN_MAIL`, `ADMIN_PASSWD`: configuración inicial.
+- Expone el puerto `8080` para acceder desde el navegador: [http://localhost:8080](http://localhost:8080).
+- Usa el volumen `ps_data` para guardar datos persistentes de PrestaShop.
 
-en el enviroment se vuelve a poner los datos necesarios, esta vez hay bastantes ya que estamos programando que se nos instale automaticamente mediante install auto y despues recoge datos como el lenguaje.
+---
 
-el puerto sirve para despues poder acceder desde el navegador desde http://localhost:8080/
-
-- phpmyadmin
+### 🔹 3. phpMyAdmin
 
 ![img_8.png](img_8.png)
 
-Funciona igual que el prestashop
+- Imagen utilizada: `phpmyadmin/phpmyadmin`.
+- También espera a que el servicio `db` esté saludable.
+- Variables de entorno necesarias para conectarse al contenedor de MariaDB.
+- Expone el puerto `8081` para acceso web: [http://localhost:8081](http://localhost:8081).
+
+---
 
 ## Comandos
 
-Para ejecutarlo se utiliza docker compose up, si te falla puedes salir con ctrl+c, luego escribes docker compose down -v y a posterior docker volume prune -a para poder borrar los volúmenes. Errores que puedan suceder son que la bd no sea healthy y que los datos aparezcan vacios. Para el primer error lo mas posible es que este mal programado el codigo. Para el segundo seguramente no te detecta el archivo .env porque lo llamaste de otra forma, aunque el archivo termine en .env, este no se leera automaticamente si no es de la otra forma, puedes cambiar el nombre o en vez de eso ejecutar el programa con el siguiente comando  docker compose --env-file nombre.env up -d.
- 
+Para ejecutar el entorno, utiliza el siguiente comando:
+
+```bash
+docker compose up
+```
+
+Si algo falla, puedes detener la ejecución con `Ctrl+C`. Luego, para limpiar completamente el entorno (incluyendo los volúmenes), ejecuta:
+
+```bash
+docker compose down -v
+docker volume prune -a
+```
+
+### Posibles errores
+
+1. **La base de datos no pasa el *healthcheck***  
+   Esto suele indicar un problema en la configuración del servicio `db` (por ejemplo, variables de entorno incorrectas o conflictos en los volúmenes). Revisa tu archivo `docker-compose.yml` y el archivo `.env`.
+
+2. **Los datos aparecen vacíos o la instalación no se completa**  
+   Es muy probable que Docker Compose no esté cargando tu archivo `.env`. Por defecto, **solo se carga automáticamente un archivo llamado exactamente `.env`** (sin prefijo ni sufijo adicional).  
+   Si tu archivo se llama, por ejemplo, `config.env` o `mi_entorno.env`, **no se leerá automáticamente**, aunque termine en `.env`.
+
+   En ese caso, puedes:
+    - Renombrar tu archivo a `.env`, **o**
+    - Especificar explícitamente el archivo al ejecutar:
+
+      ```bash
+      docker compose --env-file nombre.env up -d
+      ```
 
 ![img_3.png](img_3.png)
 
-Por ultimo, puedes acceder a las 2 webs mediante el navegador con los puertos escritos, en mi caso 8080 y 8081. Es importante asegurarse de que esto funciona antes de cambiar nada en el código, ya que a veces lo que aparece en la terminal puede ser algo confuso y parezca que no funciona cuando si que lo hace.
+Por último, una vez que los contenedores estén en ejecución, puedes acceder a las dos aplicaciones desde tu navegador:
+
+- PrestaShop: [http://localhost:8080](http://localhost:8080)
+- phpMyAdmin: [http://localhost:8081](http://localhost:8081)
+
+Es importante verificar que ambas páginas se carguen correctamente **antes de modificar el código**. A veces, los mensajes en la terminal pueden ser confusos y hacer parecer que el sistema no funciona, cuando en realidad sí lo hace.
 
 ![img_4.png](img_4.png)
+```
